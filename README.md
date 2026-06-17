@@ -1,4 +1,4 @@
-# DockPilot
+# DockerPilot
 
 A C# and Blazor management interface for Docker and Docker Compose.
 
