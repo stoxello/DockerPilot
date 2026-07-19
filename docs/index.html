@@ -1,0 +1,692 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DockPilot — Docker &amp; Compose management console</title>
+<meta name="description" content="DockPilot is a self-hosted C#/Blazor console for managing Docker: stacks, containers, images, networks, volumes, backups, replication, and remote agents.">
+<style>
+  :root{
+    --bg:#0b0e14;
+    --bg-elev:#11151f;
+    --bg-elev-2:#161b28;
+    --border:#242b3d;
+    --text:#e7ebf3;
+    --text-dim:#9aa4bb;
+    --text-faint:#6b7690;
+    --accent:#5b8cff;
+    --accent-2:#7cd9c7;
+    --accent-soft:rgba(91,140,255,0.12);
+    --danger:#ff6b6b;
+    --warn:#f5b544;
+    --code-bg:#0d1117;
+    --shadow:0 8px 30px rgba(0,0,0,0.35);
+    --radius:14px;
+    color-scheme: dark;
+  }
+  :root[data-theme="light"]{
+    --bg:#f6f7fb;
+    --bg-elev:#ffffff;
+    --bg-elev-2:#f0f2f8;
+    --border:#e2e5ee;
+    --text:#161a25;
+    --text-dim:#4d5568;
+    --text-faint:#7b8299;
+    --accent:#3b64d8;
+    --accent-2:#0f9d84;
+    --accent-soft:rgba(59,100,216,0.1);
+    --code-bg:#0d1117;
+    --shadow:0 8px 30px rgba(20,25,40,0.08);
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: light){
+    :root:not([data-theme="dark"]){
+      --bg:#f6f7fb;
+      --bg-elev:#ffffff;
+      --bg-elev-2:#f0f2f8;
+      --border:#e2e5ee;
+      --text:#161a25;
+      --text-dim:#4d5568;
+      --text-faint:#7b8299;
+      --accent:#3b64d8;
+      --accent-2:#0f9d84;
+      --accent-soft:rgba(59,100,216,0.1);
+      --code-bg:#0d1117;
+      --shadow:0 8px 30px rgba(20,25,40,0.08);
+      color-scheme: light;
+    }
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, Helvetica, Arial, sans-serif;
+    line-height:1.6;
+    overflow-x:hidden;
+  }
+  a{color:var(--accent);text-decoration:none;}
+  a:hover{text-decoration:underline;}
+  code, pre{
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  }
+  code{
+    background:var(--bg-elev-2);
+    border:1px solid var(--border);
+    padding:0.1em 0.4em;
+    border-radius:6px;
+    font-size:0.9em;
+  }
+  pre{
+    background:var(--code-bg);
+    color:#d7e0f0;
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:16px 18px;
+    overflow-x:auto;
+    font-size:0.88rem;
+    max-width:100%;
+  }
+  pre code{background:none;border:none;padding:0;}
+
+  .skip-link{position:absolute;left:-999px;top:0;background:var(--accent);color:#fff;padding:8px 14px;border-radius:8px;z-index:100;}
+  .skip-link:focus{left:12px;top:12px;}
+
+  header.site{
+    position:sticky;top:0;z-index:50;
+    display:flex;align-items:center;justify-content:space-between;
+    padding:14px 24px;
+    background:color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--border);
+    gap:16px;
+  }
+  .brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:1.05rem;white-space:nowrap;}
+  .brand .mark{
+    width:30px;height:30px;border-radius:9px;
+    background:linear-gradient(135deg,var(--accent),var(--accent-2));
+    display:flex;align-items:center;justify-content:center;color:#0b0e14;font-weight:800;
+  }
+  nav.top{display:flex;gap:4px;flex-wrap:wrap;overflow-x:auto;}
+  nav.top a{
+    color:var(--text-dim);font-size:0.88rem;font-weight:600;
+    padding:8px 10px;border-radius:8px;white-space:nowrap;
+  }
+  nav.top a:hover{color:var(--text);background:var(--bg-elev-2);text-decoration:none;}
+  .header-actions{display:flex;align-items:center;gap:8px;}
+  .icon-btn{
+    border:1px solid var(--border);background:var(--bg-elev);color:var(--text-dim);
+    border-radius:8px;padding:7px 9px;cursor:pointer;font-size:0.85rem;line-height:1;
+  }
+  .icon-btn:hover{color:var(--text);border-color:var(--accent);}
+  .gh-btn{
+    display:inline-flex;align-items:center;gap:6px;
+    background:var(--bg-elev-2);border:1px solid var(--border);
+    padding:7px 12px;border-radius:8px;font-weight:600;font-size:0.85rem;color:var(--text);
+  }
+  .gh-btn:hover{border-color:var(--accent);text-decoration:none;}
+
+  main{max-width:1080px;margin:0 auto;padding:0 24px;}
+
+  .hero{
+    padding:72px 0 48px;
+    text-align:center;
+  }
+  .eyebrow{
+    display:inline-block;font-size:0.78rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;
+    color:var(--accent);background:var(--accent-soft);padding:5px 12px;border-radius:999px;margin-bottom:18px;
+  }
+  .hero h1{
+    font-size:clamp(2.2rem,5vw,3.4rem);
+    margin:0 0 16px;
+    letter-spacing:-0.02em;
+  }
+  .hero h1 span{
+    background:linear-gradient(135deg,var(--accent),var(--accent-2));
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .hero p.lead{
+    font-size:1.15rem;color:var(--text-dim);max-width:680px;margin:0 auto 28px;
+  }
+  .badges{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:32px;}
+  .badge{
+    font-size:0.78rem;font-weight:600;padding:5px 10px;border-radius:999px;
+    background:var(--bg-elev-2);border:1px solid var(--border);color:var(--text-dim);
+  }
+  .cta-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+  .btn{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:12px 22px;border-radius:10px;font-weight:700;font-size:0.95rem;
+    border:1px solid transparent;cursor:pointer;
+  }
+  .btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#0b0e14;}
+  .btn-primary:hover{text-decoration:none;filter:brightness(1.06);}
+  .btn-secondary{background:var(--bg-elev);border-color:var(--border);color:var(--text);}
+  .btn-secondary:hover{text-decoration:none;border-color:var(--accent);}
+
+  .alert{
+    display:flex;gap:12px;align-items:flex-start;
+    background:var(--bg-elev);border:1px solid var(--border);border-left:4px solid var(--warn);
+    border-radius:10px;padding:16px 18px;margin:20px 0;
+  }
+  .alert.danger{border-left-color:var(--danger);}
+  .alert .ico{font-size:1.2rem;line-height:1;}
+  .alert strong{display:block;margin-bottom:2px;}
+
+  section{padding:56px 0;border-top:1px solid var(--border);}
+  section:first-of-type{border-top:none;}
+  .section-head{margin-bottom:28px;max-width:680px;}
+  .section-head .eyebrow{margin-bottom:10px;}
+  .section-head h2{font-size:1.9rem;margin:0 0 10px;letter-spacing:-0.01em;}
+  .section-head p{color:var(--text-dim);margin:0;}
+
+  .grid{display:grid;gap:16px;}
+  .grid.cols-3{grid-template-columns:repeat(3,1fr);}
+  .grid.cols-2{grid-template-columns:repeat(2,1fr);}
+  @media (max-width:820px){
+    .grid.cols-3{grid-template-columns:repeat(2,1fr);}
+    .grid.cols-2{grid-template-columns:1fr;}
+  }
+  @media (max-width:560px){
+    .grid.cols-3{grid-template-columns:1fr;}
+  }
+
+  .card{
+    background:var(--bg-elev);border:1px solid var(--border);border-radius:var(--radius);
+    padding:20px;
+  }
+  .card .ico{
+    width:36px;height:36px;border-radius:10px;background:var(--accent-soft);color:var(--accent);
+    display:flex;align-items:center;justify-content:center;font-weight:800;margin-bottom:12px;font-size:1rem;
+  }
+  .card h3{margin:0 0 8px;font-size:1.05rem;}
+  .card p{margin:0;color:var(--text-dim);font-size:0.92rem;}
+
+  .feature-group-title{
+    font-size:0.78rem;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;
+    color:var(--text-faint);margin:32px 0 14px;
+  }
+  .feature-group-title:first-child{margin-top:0;}
+
+  table{width:100%;border-collapse:collapse;font-size:0.92rem;}
+  .table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:12px;}
+  th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--border);vertical-align:top;}
+  th{background:var(--bg-elev-2);color:var(--text-dim);font-size:0.78rem;text-transform:uppercase;letter-spacing:0.04em;}
+  tr:last-child td{border-bottom:none;}
+  td code{white-space:nowrap;}
+
+  .steps{counter-reset:step;list-style:none;padding:0;margin:0;}
+  .steps li{
+    counter-increment:step;
+    position:relative;padding:0 0 24px 44px;
+    border-left:2px solid var(--border);margin-left:17px;
+  }
+  .steps li:last-child{border-left-color:transparent;padding-bottom:0;}
+  .steps li::before{
+    content:counter(step);
+    position:absolute;left:-17px;top:0;
+    width:34px;height:34px;border-radius:50%;
+    background:var(--bg-elev);border:1px solid var(--accent);color:var(--accent);
+    display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.9rem;
+  }
+  .steps h4{margin:0 0 6px;font-size:1rem;}
+  .steps p{margin:0 0 10px;color:var(--text-dim);}
+
+  .callout{
+    background:var(--bg-elev);border:1px solid var(--border);border-radius:12px;
+    padding:18px 20px;margin:16px 0;
+  }
+  .callout h4{margin:0 0 8px;font-size:0.95rem;}
+
+  .two-col{display:grid;grid-template-columns:1.1fr 1fr;gap:20px;align-items:start;}
+  @media (max-width:820px){.two-col{grid-template-columns:1fr;}}
+
+  .pill-row{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 0;}
+  .pill{font-size:0.78rem;font-weight:600;padding:4px 10px;border-radius:999px;background:var(--accent-soft);color:var(--accent);}
+
+  .api-list{list-style:none;margin:0;padding:0;display:grid;gap:8px;}
+  .api-list li{
+    display:flex;gap:10px;align-items:baseline;
+    background:var(--bg-elev-2);border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:0.85rem;
+  }
+  .method{font-weight:700;color:var(--accent-2);font-family:ui-monospace,monospace;min-width:38px;}
+
+  footer{
+    border-top:1px solid var(--border);padding:36px 24px 60px;text-align:center;color:var(--text-faint);font-size:0.88rem;
+  }
+  footer a{color:var(--text-dim);}
+  .foot-links{display:flex;gap:18px;justify-content:center;flex-wrap:wrap;margin-bottom:14px;}
+
+  .anchor-offset{scroll-margin-top:74px;}
+
+  ::selection{background:var(--accent-soft);}
+</style>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="site">
+  <div class="brand"><span class="mark">D</span> DockPilot</div>
+  <nav class="top">
+    <a href="#features">Features</a>
+    <a href="#quick-start">Quick start</a>
+    <a href="#agents">Agents</a>
+    <a href="#resilience">Backup &amp; replication</a>
+    <a href="#configuration">Configuration</a>
+    <a href="#updating">Updating</a>
+    <a href="#deploying">Deploying</a>
+  </nav>
+  <div class="header-actions">
+    <button class="icon-btn" id="theme-toggle" type="button" aria-label="Toggle color theme" title="Toggle color theme">◐</button>
+    <a class="gh-btn" href="https://github.com/stoxello/DockerPilot" target="_blank" rel="noopener">★ GitHub</a>
+  </div>
+</header>
+
+<main id="main">
+
+  <section class="hero" style="border-top:none;">
+    <span class="eyebrow">Alpha · self-hosted · open source</span>
+    <h1>Manage Docker like a <span>pilot</span>, not a passenger</h1>
+    <p class="lead">
+      DockPilot is a C# and Blazor console for Docker and Docker Compose — the approachable stack workflow
+      of Dockge, a built-in app catalog for one-click self-hosting, and progressively deeper environment
+      management inspired by Portainer. One container, plain Compose files on disk, no vendor lock-in.
+    </p>
+    <div class="badges">
+      <span class="badge">.NET 9</span>
+      <span class="badge">Blazor Server</span>
+      <span class="badge">Docker CLI-native</span>
+      <span class="badge">Multi-host agents</span>
+      <span class="badge">Status: alpha</span>
+    </div>
+    <div class="cta-row">
+      <a class="btn btn-primary" href="#quick-start">Quick start →</a>
+      <a class="btn btn-secondary" href="https://github.com/stoxello/DockerPilot" target="_blank" rel="noopener">View source on GitHub</a>
+    </div>
+  </section>
+
+  <section id="overview" class="anchor-offset">
+    <div class="section-head">
+      <span class="eyebrow">How it works</span>
+      <h2>No SDK, no hidden state</h2>
+      <p>DockPilot is an ASP.NET Core / Blazor (Interactive Server) app. Instead of a Docker SDK, it shells
+      out to the <code>docker</code> and <code>docker compose</code> CLIs and parses their JSON output — the
+      same thing you'd run by hand. Every stack it creates is written as an ordinary <code>compose.yaml</code>
+      (and optional <code>.env</code>) under the stacks directory, so it stays fully inspectable and portable.
+      Managed stacks are sandboxed by name to that directory, and only stacks DockPilot created can be edited
+      or rewritten from the UI.</p>
+    </div>
+  </section>
+
+  <section id="features" class="anchor-offset">
+    <div class="section-head">
+      <span class="eyebrow">What it does</span>
+      <h2>Features</h2>
+      <p>DockPilot covers the full loop from discovering what's running to deploying, editing, backing up,
+      and replicating it — on your local Docker host or across a fleet of remote agents.</p>
+    </div>
+
+    <div class="feature-group-title">Workspace</div>
+    <div class="grid cols-3">
+      <div class="card"><div class="ico">✦</div><h3>App catalog</h3><p>A searchable, built-in catalog of popular self-hosted apps with parameterized Compose previews and one-click deploy into an isolated stack directory.</p></div>
+      <div class="card"><div class="ico">▤</div><h3>Stacks</h3><p>Discovers every Compose project on the host, including DockPilot-managed stacks whose deploy never completed. Create, edit, and redeploy stacks from an in-app editor.</p></div>
+      <div class="card"><div class="ico">↻</div><h3>Lifecycle actions</h3><p>Start, stop, restart, pull updates, and remove a stack. Removing a managed stack also deletes its files from disk.</p></div>
+    </div>
+
+    <div class="feature-group-title">Resources</div>
+    <div class="grid cols-3">
+      <div class="card"><div class="ico">▣</div><h3>Containers</h3><p>Discovery and filtering, plus a detail view with logs, live CPU / memory / disk charts, and an interactive in-browser shell.</p></div>
+      <div class="card"><div class="ico">◆</div><h3>Images</h3><p>List every local image with in-use detection, so you know what's safe to prune.</p></div>
+      <div class="card"><div class="ico">◎</div><h3>Networks</h3><p>List with in-use detection; create and remove custom Docker networks.</p></div>
+      <div class="card"><div class="ico">⬡</div><h3>Volumes</h3><p>List with in-use detection; create and remove volumes.</p></div>
+      <div class="card"><div class="ico">⌂</div><h3>Volume browser</h3><p>Browse a volume's file tree and edit text files in place — without shelling into a container.</p></div>
+      <div class="card"><div class="ico">≋</div><h3>Events &amp; audit log</h3><p>A live Docker engine event feed alongside a DockPilot audit log of deploys, removals, edits, and sign-ins.</p></div>
+    </div>
+
+    <div class="feature-group-title">Resilience</div>
+    <div class="grid cols-2">
+      <div class="card"><div class="ico">B</div><h3>Backup</h3><p>Scheduled full and incremental backups of a stack's volumes and Compose configuration to the local host, with configurable retention and an option to stop the stack for a consistent snapshot.</p></div>
+      <div class="card"><div class="ico">R</div><h3>Replication</h3><p>Copy a stack to a registered DockPilot agent and keep a cold replica in sync on a schedule, ready for failover, with optional bandwidth capping.</p></div>
+    </div>
+
+    <div class="feature-group-title">Administration</div>
+    <div class="grid cols-3">
+      <div class="card"><div class="ico">●</div><h3>Environments / Agents</h3><p>Register remote DockPilot Agent instances and switch the Control Center between Docker hosts from a single top-bar selector.</p></div>
+      <div class="card"><div class="ico">⇪</div><h3>Update checks</h3><p>DockPilot compares its running image digest against the published one and flags the sidebar when a newer version is available.</p></div>
+      <div class="card"><div class="ico">⚿</div><h3>Registry credentials</h3><p>Sign Docker in to a private registry (GHCR, Docker Hub, or custom) on the local host or a specific agent, so private images pull cleanly during installs and updates.</p></div>
+      <div class="card"><div class="ico">⚙</div><h3>Authentication</h3><p>ASP.NET Core Identity login with account management and two-factor authentication. A one-time first-run wizard creates the initial administrator; public registration stays disabled.</p></div>
+      <div class="card"><div class="ico">▦</div><h3>Engine overview</h3><p>Host name, Docker version, OS, and container / image counts on the dashboard, with graceful handling when the engine is offline.</p></div>
+    </div>
+
+    <div class="callout">
+      <h4>Not yet built</h4>
+      <p style="margin:0;color:var(--text-dim);">Per-container lifecycle actions, role-based access control for multiple users, remote shell sessions to agent hosts, and one-click self-update are on the <a href="#roadmap">roadmap</a>. Stack file editing and remote shell currently run on the Control Center host only.</p>
+    </div>
+  </section>
+
+  <section id="catalog" class="anchor-offset">
+    <div class="section-head">
+      <span class="eyebrow">Batteries included</span>
+      <h2>Built-in app catalog</h2>
+      <p>A starting set of popular self-hosted apps, ready to deploy with a parameterized Compose preview.</p>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>App</th><th>Category</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td>Jellyfin</td><td>Media</td><td>Private media server for movies, shows, music, and photos</td></tr>
+          <tr><td>Immich</td><td>Photos</td><td>High-performance self-hosted photo and video backup</td></tr>
+          <tr><td>Uptime Kuma</td><td>Monitoring</td><td>Friendly monitoring dashboard for services and endpoints</td></tr>
+          <tr><td>PostgreSQL</td><td>Database</td><td>Production-grade relational database with persistent storage</td></tr>
+          <tr><td>Nginx Proxy Manager</td><td>Networking</td><td>Reverse proxy and TLS certificate management</td></tr>
+          <tr><td>Home Assistant</td><td>Automation</td><td>Open-source home automation with local-first control</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="quick-start" class="anchor-offset">
+    <div class="section-head">
+      <span class="eyebrow">Install</span>
+      <h2>Quick start with Docker</h2>
+      <p>This is the recommended way to run DockPilot. It pulls the published image — no build step required.</p>
+    </div>
+
+    <ol class="steps">
+      <li>
+        <h4>Check prerequisites</h4>
+        <p>Docker Engine with the Compose v2 plugin (<code>docker compose</code>). On Windows/macOS, Docker Desktop covers this.</p>
+      </li>
+      <li>
+        <h4>Get the Compose file</h4>
+        <p>Clone the repo, or create a <code>compose.yaml</code> yourself:</p>
+<pre><code>git clone https://github.com/stoxello/dockpilot.git
+cd dockpilot</code></pre>
+<pre><code>services:
+  dockpilot:
+    image: ghcr.io/stoxello/dockpilot:latest
+    pull_policy: always
+    container_name: dockpilot
+    restart: unless-stopped
+    ports:
+      - "${DOCKPILOT_PORT:-8080}:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./data:/app/data
+      - ./keys:/app/keys
+      - ./stacks:/opt/stacks</code></pre>
+      </li>
+      <li>
+        <h4>Start it</h4>
+<pre><code>docker compose up -d</code></pre>
+        <p>To use a different host port, set <code>DOCKPILOT_PORT</code> (for example in a <code>.env</code> file next to <code>compose.yaml</code>): <code>DOCKPILOT_PORT=9000</code>.</p>
+      </li>
+      <li>
+        <h4>Sign in</h4>
+        <p>Open <strong>http://localhost:8080</strong>, create the initial administrator account, and sign in. Public registration is disabled after that — only this first-run account can be created without authentication.</p>
+      </li>
+    </ol>
+
+    <div class="callout">
+      <h4>Private GHCR package?</h4>
+      <p style="margin:0;color:var(--text-dim);">Run <code>docker login ghcr.io</code> once before <code>docker compose up -d</code>, or add the credential through DockPilot's <a href="#registries">registry credentials</a> page after first sign-in.</p>
+    </div>
+  </section>
+
+  <section id="agents" class="anchor-offset">
+    <div class="section-head">
+      <span class="eyebrow">Multi-host</span>
+      <h2>Remote agents</h2>
+      <p>Install <code>DockPilot.Agent</code> on another Docker host when you want one DockPilot Control Center
+      to manage multiple engines. The agent is a small, token-protected HTTP API that runs Docker CLI commands
+      against the host it's installed on — it never talks back to the Control Center on its own.</p>
+    </div>
+
+    <div class="two-col">
+      <div>
+        <h3 style="margin-top:0;">Deploy the agent</h3>
+        <ol class="steps">
+          <li>
+            <h4>On the remote Docker host</h4>
+<pre><code>curl -O https://raw.githubusercontent.com/stoxello/dockpilot/main/compose.agent.yaml
+printf "DOCKPILOT_AGENT_TOKEN=$(openssl rand -hex 32)\n" &gt; .env
+docker compose -f compose.agent.yaml up -d</code></pre>
+          </li>
+          <li>
+            <h4>Register it in DockPilot</h4>
+            <p>Open DockPilot → <strong>Environments</strong> → <em>Connect a Docker host</em>, and add:</p>
+            <ul style="color:var(--text-dim);margin:0 0 0 18px;padding:0;">
+              <li><strong>Name</strong> — a friendly label for the host</li>
+              <li><strong>Endpoint</strong> — <code>http://&lt;remote-host&gt;:5151</code></li>
+              <li><strong>Access token</strong> — the <code>DOCKPILOT_AGENT_TOKEN</code> value from the remote host's <code>.env</code></li>
+            </ul>
+          </li>
+          <li>
+            <h4>Switch environments</h4>
+            <p>Use the top-bar environment selector to switch between <em>This host</em> and registered agents. Containers, Stacks, Images, Networks, Volumes, and Events follow the selected environment; stack creation and app catalog installs deploy to it too.</p>
+          </li>
+        </ol>
+      </div>
+      <div>
+        <div class="card" style="margin-bottom:16px;">
+          <h3 style="margin-top:0;">Stacks created for an agent</h3>
+          <p>Stored under <code>/opt/dockpilot/stacks</code> on that host by default. Set <code>DOCKPILOT_AGENT_STACKS_ROOT</code> in the agent's <code>.env</code> to use a different absolute host path.</p>
+        </div>
+        <div class="card">
+          <h3 style="margin-top:0;">What the agent exposes</h3>
+          <p style="margin-bottom:12px;">A Bearer-token-authenticated HTTP API the Control Center calls on your behalf:</p>
+          <ul class="api-list">
+            <li><span class="method">GET</span> <code>/health</code></li>
+            <li><span class="method">POST</span> <code>/api/stacks/deploy</code></li>
+            <li><span class="method">POST</span> <code>/api/stacks/files</code> / <code>/save</code></li>
+            <li><span class="method">POST</span> <code>/api/docker/commands</code></li>
+            <li><span class="method">POST</span> <code>/api/registry/login</code> / <code>/logout</code></li>
+            <li><span class="method">POST</span> <code>/api/replication/files</code></li>
+            <li><span class="method">POST</span> <code>/api/replication/volumes/import</code> / <code>/export</code></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="alert">
+      <span class="ico">⚠</span>
+      <div>
+        <strong>Troubleshooting a restarting agent</strong>
+        Check that <code>.env</code> sits next to <code>compose.agent.yaml</code> and contains a non-empty <code>DOCKPILOT_AGENT_TOKEN</code> — a missing token makes the agent exit on startup.
+<pre style="margin-top:10px;"><code>docker compose -f compose.agent.yaml config
+docker logs --tail 100 dockpilot-agent</code></pre>
+        <p style="margin:10px 0 0;">If logs show <code>exec /usr/bin/dotnet: input/output error</code>, verify host Docker storage: <code>docker run --rm mcr.microsoft.com/dotnet/aspnet:9.0 dotnet --info</code>. If that also fails, run <a href="https://github.com/stoxello/DockerPilot/blob/main/scripts/repair-docker-dotnet-io.sh" target="_blank" rel="noopener"><code>scripts/repair-docker-dotnet-io.sh</code></a> on the Ubuntu host — normally first, and only with <code>--reset-docker-storage</code> if Docker still can't execute the base image.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="resilience" class="anchor-offset">
+    <div class="section-head">
+      <span class="eyebrow">Stack resilience</span>
+      <h2>Backup &amp; replication</h2>
+      <p>Both features run from a scheduled plan you create once; DockPilot then runs it in the background.</p>
+    </div>
+
+    <div class="two-col">
+      <div class="card">
+        <h3 style="margin-top:0;">Backup — <span style="color:var(--text-dim);font-weight:400;">local snapshots</span></h3>
+        <p>Go to <strong>Backup</strong>, pick a source stack, and choose a schedule (every 15 min up to daily). Set
+        how often a full backup runs versus an incremental one, and how many full backup chains to retain — older
+        chains are pruned automatically after a new full backup completes.</p>
+        <div class="pill-row">
+          <span class="pill">Volumes</span>
+          <span class="pill">Record images</span>
+          <span class="pill">Stop stack for snapshot</span>
+        </div>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0;">Replication — <span style="color:var(--text-dim);font-weight:400;">cold standby</span></h3>
+        <p>Go to <strong>Replication</strong>, pick a source stack and a registered target agent, and choose a
+        schedule. Volumes are streamed to the target as a tar archive over the agent API; a bandwidth cap can be
+        stored with the job.</p>
+        <div class="pill-row">
+          <span class="pill">Images</span>
+          <span class="pill">Volumes</span>
+          <span class="pill">Stop source for snapshot</span>
+          <span class="pill">Bandwidth cap</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="configuration" class="anchor-offset">
+    <div class="section-head">
+      <span class="eyebrow">Reference</span>
+      <h2>Configuration</h2>
+      <p>DockPilot is configured through environment variables. The defaults below are what the container image ships with.</p>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Variable</th><th>Default (container)</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>DOCKPILOT_PORT</code></td><td><code>8080</code></td><td>Host port mapped to the container, set in the Compose <code>.env</code></td></tr>
+          <tr><td><code>ASPNETCORE_URLS</code></td><td><code>http://+:8080</code></td><td>Address the app listens on inside the container</td></tr>
+          <tr><td><code>ConnectionStrings__DefaultConnection</code></td><td><code>DataSource=/app/data/dockpilot.db</code></td><td>SQLite connection string for Identity and app data</td></tr>
+          <tr><td><code>DockPilot__DataPath</code></td><td><code>/app/data</code></td><td>Persistent app state directory</td></tr>
+          <tr><td><code>DockPilot__StacksPath</code></td><td><code>/opt/stacks</code></td><td>Directory where DockPilot writes the Compose stacks it manages</td></tr>
+          <tr><td><code>DockPilot__DataProtectionPath</code></td><td><code>/app/keys</code></td><td>Where ASP.NET Core data-protection keys are persisted</td></tr>
+          <tr><td><code>DockPilot__AgentsPath</code></td><td><code>/app/data/agents.json</code></td><td>Registered remote DockPilot agents</td></tr>
+          <tr><td><code>DockPilot__ReplicationPath</code></td><td><code>/app/data/replication.json</code></td><td>Replication plans and job history</td></tr>
+          <tr><td><code>DockPilot__ReplicaStacksPath</code></td><td><code>/app/data/replicas</code></td><td>Local cold-replica Compose files and volume archives</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="color:var(--text-dim);font-size:0.92rem;">Account policy: passwords must be at least 10 characters. Email confirmation is disabled (no SMTP configured), so accounts are usable immediately after creation.</p>
+
+    <h3 style="margin-top:32px;">Persistent data</h3>
+    <p style="color:var(--text-dim);">The Compose file mounts the Docker socket plus three writable directories. Keep <code>./data</code>, <code>./keys</code>, and <code>./stacks</code> to preserve state across upgrades.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Host path</th><th>Container path</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td><code>/var/run/docker.sock</code></td><td><code>/var/run/docker.sock</code></td><td>Lets DockPilot drive the host Docker engine</td></tr>
+          <tr><td><code>./data</code></td><td><code>/app/data</code></td><td>SQLite database, registered agents, replication plans, and local replica metadata</td></tr>
+          <tr><td><code>./keys</code></td><td><code>/app/keys</code></td><td>Data-protection keys — persisting these keeps logins valid across restarts</td></tr>
+          <tr><td><code>./stacks</code></td><td><code>/opt/stacks</code></td><td>Compose stacks created and managed by DockPilot</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="alert danger" id="registries">
+      <span class="ico">⚿</span>
+      <div>
+        <strong>Docker socket = host admin</strong>
+        DockPilot mounts <code>/var/run/docker.sock</code>. Access to this socket is equivalent to administrative control of the Docker host. Keep DockPilot behind a reverse proxy that terminates HTTPS, never expose it directly to the public internet, and treat anyone who can reach the UI as a host administrator. Public registration stays disabled — only the first-run administrator can be created without authentication.
+      </div>
+    </div>
+  </section>
+
+  <section id="updating" class="anchor-offset">
+    <div class="section-head">
+      <span class="eyebrow">Stay current</span>
+      <h2>Updating &amp; deploying</h2>
+    </div>
+
+    <div class="two-col">
+      <div>
+        <h3 style="margin-top:0;">Update the Control Center</h3>
+        <p>DockPilot's <strong>Updates</strong> page compares its running image digest against the published one and
+        badges the sidebar when a newer version exists. From the directory containing your <code>compose.yaml</code>:</p>
+<pre><code>docker compose pull
+docker compose up -d</code></pre>
+        <p style="color:var(--text-dim);font-size:0.92rem;">DockPilot restarts on the new image. Your data, keys, and stacks are preserved by the mounted volumes. One-click self-update is on the <a href="#roadmap">roadmap</a> — today you run the two commands above yourself.</p>
+      </div>
+      <div>
+        <h3 style="margin-top:0;">Update an agent</h3>
+        <p>Same idea, from the directory containing <code>compose.agent.yaml</code> on the remote host:</p>
+<pre><code>docker compose -f compose.agent.yaml pull
+docker compose -f compose.agent.yaml up -d</code></pre>
+        <p style="color:var(--text-dim);font-size:0.92rem;">The image uses <code>pull_policy: always</code>, so a plain <code>up -d</code> after a fresh <code>pull</code> is enough to move to the latest published agent build.</p>
+      </div>
+    </div>
+
+    <h3 id="deploying">Build the Control Center from source</h3>
+    <p>To build the image locally instead of pulling from GHCR, layer the build overlay over the base Compose file:</p>
+<pre><code>docker compose -f compose.yaml -f compose.build.yaml up -d --build</code></pre>
+    <p style="color:var(--text-dim);">This builds from the repository <code>Dockerfile</code> — a multi-stage build on the .NET 9 SDK that also copies the Docker CLI and Compose plugin into the runtime image.</p>
+
+    <h3>Local development</h3>
+    <p style="color:var(--text-dim);">Requires the <a href="https://dotnet.microsoft.com/download" target="_blank" rel="noopener">.NET 9 SDK</a> and a running Docker Desktop or Docker Engine.</p>
+<pre><code>dotnet run --project ./src/DockPilot.Web</code></pre>
+    <p style="color:var(--text-dim);">Open <strong>http://localhost:5146</strong> (or <code>https://localhost:7142</code>), create the initial account, and sign in. Docker must be running for engine data and deployments to work.</p>
+
+    <h3>Run the test suite</h3>
+<pre><code>dotnet test</code></pre>
+    <p style="color:var(--text-dim);">The <code>tests/DockPilot.Web.Tests</code> project covers the app catalog, app deployment, stack, setup, resource (image/network/volume), agent registry, backup, replication, registry credential, audit, and update services.</p>
+
+    <h3>Publish the image (maintainers)</h3>
+    <p style="color:var(--text-dim);">The public image is published to GitHub Container Registry as <code>ghcr.io/stoxello/dockpilot</code>, using a GitHub Personal Access Token with the <code>write:packages</code> scope, supplied through an environment variable — never hard-coded or committed.</p>
+<pre><code>$env:GHCR_TOKEN = "&lt;github-pat-with-write:packages&gt;"
+.\ghcr-publish.ps1 -Owner stoxello -Version 0.1.0</code></pre>
+    <p style="color:var(--text-dim);">The script logs in to <code>ghcr.io</code>, builds from the local <code>Dockerfile</code>, pushes the version tag, and also updates <code>:latest</code> (pass <code>-NoLatestTag</code> to skip that). It logs out afterward so credentials don't linger in your Docker config. The same script publishes the remote agent image:</p>
+<pre><code>.\ghcr-publish.ps1 -Owner stoxello -Image dockpilot-agent -Version 0.1.0</code></pre>
+  </section>
+
+  <section id="structure" class="anchor-offset">
+    <div class="section-head">
+      <span class="eyebrow">Under the hood</span>
+      <h2>Project structure</h2>
+    </div>
+<pre><code>src/DockPilot.Web        Blazor UI, Identity, app catalog, and Docker services
+  Components/             Razor pages and layouts (Apps, Stacks, Containers, Account)
+  Services/                DockerCliService, StackService, AppDeploymentService, SetupService,
+                            BackupService, ReplicationService, AgentRegistry, UpdateService
+  Data/                    EF Core DbContext and Identity migrations
+src/DockPilot.Agent       Lightweight token-protected HTTP agent for remote Docker hosts
+tests/DockPilot.Web.Tests xUnit test suite
+Dockerfile                Multi-stage build (SDK build -&gt; aspnet runtime + docker CLI)
+compose.agent.yaml        Deployment Compose file for a remote DockPilot Agent
+compose.yaml               Deployment Compose file (pulls from GHCR)
+compose.build.yaml        Overlay to build the image from source
+ghcr-publish.ps1           Build and publish images to GitHub Container Registry</code></pre>
+  </section>
+
+  <section id="roadmap" class="anchor-offset">
+    <div class="section-head">
+      <span class="eyebrow">What's next</span>
+      <h2>Roadmap</h2>
+    </div>
+    <ul style="color:var(--text-dim);padding-left:20px;">
+      <li>Per-container lifecycle actions (start, stop, restart, remove)</li>
+      <li>Remote stack file sync and shell sessions on agent hosts</li>
+      <li>Role-based access control for multiple users</li>
+      <li>One-click self-update (today DockPilot detects a new image and notifies you; you run the upgrade)</li>
+    </ul>
+  </section>
+
+</main>
+
+<footer>
+  <div class="foot-links">
+    <a href="https://github.com/stoxello/DockerPilot" target="_blank" rel="noopener">Repository</a>
+    <a href="https://github.com/stoxello/DockerPilot/issues" target="_blank" rel="noopener">Issues</a>
+    <a href="https://github.com/stoxello/DockerPilot/blob/main/README.md" target="_blank" rel="noopener">README</a>
+  </div>
+  <div>DockPilot is early alpha software. Review the security notes before exposing it beyond a trusted network.</div>
+</footer>
+
+<script>
+  (function(){
+    var root = document.documentElement;
+    var btn = document.getElementById('theme-toggle');
+    var stored = null;
+    try { stored = localStorage.getItem('dockpilot-docs-theme'); } catch(e) {}
+    if (stored === 'light' || stored === 'dark') root.setAttribute('data-theme', stored);
+    btn.addEventListener('click', function(){
+      var current = root.getAttribute('data-theme');
+      var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      var effective = current || (prefersDark ? 'dark' : 'light');
+      var next = effective === 'dark' ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      try { localStorage.setItem('dockpilot-docs-theme', next); } catch(e) {}
+    });
+  })();
+</script>
+</body>
+</html>
